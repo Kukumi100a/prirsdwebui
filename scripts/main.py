@@ -2,8 +2,11 @@ from scripts.openmp import grayscaleOpenMP, sepiaOpenMP, blurOpenMP, contrastOpe
 from scripts.MPI import grayscaleMPI, sepiaMPI, blurMPI, contrastMPI, edge_detectionMPI
 from scripts.cudagpu import grayscaleCUDAGPU, sepiaCUDAGPU, blurCUDAGPU, contrastCUDAGPU, edge_detectionCUDAGPU
 from scripts.cuda import grayscaleCUDA, sepiaCUDA, blurCUDA, contrastCUDA, edge_detectionCUDA
+from scripts.benchmark import run_benchmark
 from mpi4py import MPI
 from mpi4py import MPI
+from datetime import datetime
+
 
 from modules import script_callbacks
 from modules.paths import models_path
@@ -13,6 +16,7 @@ from modules import shared
 from concurrent.futures import ThreadPoolExecutor
 from modules_forge.forge_util import numpy_to_pytorch, pytorch_to_numpy
 from torch.multiprocessing import Pool, Process, set_start_method
+
 
 
 import numpy as np
@@ -26,8 +30,6 @@ import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 import threading
-
-
 
 #Inicjalizacja MPI
 comm = MPI.COMM_WORLD
@@ -261,6 +263,7 @@ def on_ui_tabs():
                                               choices=['Czarno-bia\u0142y', 'Sepia', 'Rozmycie', 'Kontrast', 'Wykrywanie kraw\u0119dzi'], value='Czarno-bia\u0142y')
                 amount_of_threads = gr.Slider(label='Liczba w\u0105tk\u00f3w (Dla CUDA (GPU) zostaw 1)', minimum=1, maximum=max_threads(), step=1, value=1, Interactive=True)
                 generate_button = gr.Button(value="Generate")
+                benchmark_button = gr.Button(value="Benchmark")
                 ctrls = [input_image, used_technology, type_of_operation, amount_of_threads]
             with gr.Column():
                 output_image = gr.Image(label='Wynik modyfikacji', type='numpy', source='upload', height=400, Interactive=True)
@@ -270,6 +273,7 @@ def on_ui_tabs():
             used_technology.change(sprawdz, [used_technology, amount_of_threads], amount_of_threads)
 
             generate_button.click(generate_callback, inputs=ctrls, outputs=[output_image, output_wykresy])
+            benchmark_button.click(run_benchmark, inputs=input_image, outputs=[output_image, output_wykresy])
 
     return [(ui_component, "PRiR", "PRiR")]
     
@@ -286,11 +290,9 @@ def generate_callback(input_image, used_technology, type_of_operation, amount_of
     max_execution_time = max(execution_times)
     max_execution_time_ms = max_execution_time * 1000
 
-
     # Tworzenie słupków dla każdego wątku z użyciem wybranej palety kolorów
     for i in range(amount_of_threads):
         plt.bar(i + 1, execution_times[i], color=palette[i])
-        
 
     plt.xlabel('Liczba wątków', color='white')
     plt.ylabel('Czas wykonania (s)', color='white')
@@ -307,11 +309,29 @@ def generate_callback(input_image, used_technology, type_of_operation, amount_of
     #Czas wykonania
     plt.text((amount_of_threads + 1) / 2, max_execution_time * 2 * 0.9, f"Całkowity czas wykonania: {max_execution_time_ms:.2f} ms", fontsize=10, bbox=dict(facecolor='#0b0f19', alpha=0.5), color='white', ha='center')
 
-
     plt.tight_layout()
 
-    # Saving the plot 
-    wykres = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "wykresy", "wykres.png")
+    # Aktualna data i czas
+    current_datetime = datetime.now()
+
+    # Format daty i czasu
+    date_time_format = "%Y-%m-%d-%H-%M-%S"
+
+    # Konwertowanie daty i czasu na łańcuch znaków w określonym formacie
+    current_datetime_str = current_datetime.strftime(date_time_format)
+
+    # Tworzenie nazwy pliku z aktualną datą i czasem
+    file_name = f"wykres_{current_datetime_str}.png"
+
+    # Ścieżka do folderu, w którym znajduje się bieżący skrypt
+    current_script_dir = os.path.dirname(os.path.realpath(__file__))
+    folder_path = os.path.join("..", "wykresy")
+
+
+    # Pełna ścieżka do pliku z wykresem
+    wykres = os.path.join(current_script_dir, folder_path, file_name)
+
+    # Zapisanie wykresu
     plt.savefig(wykres)
     plt.close()
 
