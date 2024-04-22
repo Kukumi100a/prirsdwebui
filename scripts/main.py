@@ -262,12 +262,15 @@ def on_ui_tabs():
                 type_of_operation = gr.Radio(label='Rodzaj operacji',
                                               choices=['Czarno-bia\u0142y', 'Sepia', 'Rozmycie', 'Kontrast', 'Wykrywanie kraw\u0119dzi'], value='Czarno-bia\u0142y')
                 amount_of_threads = gr.Slider(label='Liczba w\u0105tk\u00f3w (Dla CUDA (GPU) zostaw 1)', minimum=1, maximum=max_threads(), step=1, value=1, Interactive=True)
-                generate_button = gr.Button(value="Generate")
-                benchmark_button = gr.Button(value="Benchmark")
+
+                with gr.Row():
+                    generate_button = gr.Button(value="Generuj", variant="primary")
+                    benchmark_button = gr.Button(value="Benchmark")
                 ctrls = [input_image, used_technology, type_of_operation, amount_of_threads]
+
             with gr.Column():
                 output_image = gr.Image(label='Wynik modyfikacji', type='numpy', source='upload', height=400, Interactive=True)
-                output_wykresy = gr.Gallery(label='Wykresy', show_label=True, object_fit='contain',
+                output_wykresy = gr.Gallery(label='Wykresy', show_label=True, object_fit='fill',
                                             visible=True, columns=4)
 
             used_technology.change(sprawdz, [used_technology, amount_of_threads], amount_of_threads)
